@@ -41,7 +41,6 @@ main{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-lef
 .q{font-family:var(--display);font-weight:600;font-size:clamp(16px,3.6vw,20px);text-align:center;margin:0;text-wrap:balance}
 .big{width:min(220px,58vw);height:auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.18))}
 .opts{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:520px){.opts.text{grid-template-columns:1fr}}
 .opt{font:500 15px var(--body);text-align:left;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;gap:10px;align-items:center;min-width:0}
 .opt .k{flex:none;width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .opt.pic{justify-content:center;padding:14px;position:relative}
@@ -69,6 +68,32 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:12px 0 0}
 .gi .n{font-weight:600;font-size:14px;margin:2px 0}
 .gi .d{font-size:13px;color:var(--muted);margin:0}
 .gi .ok{color:var(--ok);font-size:12px;font-weight:600}
+.opt span{min-width:0;overflow-wrap:anywhere}
+.sheet{width:100%}
+.sheet .in{display:flex;flex-direction:column;align-items:center;gap:12px}
+.sheet .fb{min-width:0}
+@media (max-width:600px){
+  header{padding-block:10px 0} h1{font-size:18px} .tab{padding:6px 10px;font-size:13px} .road{margin-top:10px;height:4px}
+  main{padding-block:10px 16px;gap:10px} #quiz{gap:10px!important}
+  .stats{font-size:13px;gap:6px 12px}
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .chip{white-space:nowrap;padding:5px 10px;font-size:12px}
+  .foot{display:none}
+  .card{padding:12px;gap:10px;border-radius:12px}
+  .big{width:min(140px,20vh)}
+  .q{font-size:15px}
+  .opts{gap:8px}
+  .opt{font-size:13.5px;padding:9px 10px;line-height:1.25}
+  .opt .k{display:none}
+  .opt.pic{padding:8px}
+  .opt.pic svg{width:min(84px,13vh)}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(0,0,0,.18);padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  body.open main{padding-bottom:200px}
+  .sheet .in{flex-direction:column;align-items:stretch;gap:8px}
+  .sheet .fb{font-size:14px;line-height:1.35}
+  .sheet .fb svg{width:40px;height:40px}
+  .sheet .btn{width:100%}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -299,8 +324,16 @@ function pick(){
   const w=c.map(s=>[1,4,6][Math.min(2,2-box(s.id))]||1), total=w.reduce((a,b)=>a+b,0);
   let r=Math.random()*total; for(let k=0;k<c.length;k++){r-=w[k];if(r<=0)return c[k]} return c[0];
 }
+function openSheet(html){
+  closeSheet();
+  const phone=matchMedia('(max-width:600px)').matches;
+  const sh=document.createElement('div');sh.id='sheet';sh.className='sheet';
+  (phone?document.body:$('fbx')).appendChild(sh);
+  sh.innerHTML=html; if(phone)document.body.classList.add('open');
+}
+function closeSheet(){const sh=document.getElementById('sheet');if(sh)sh.remove();document.body.classList.remove('open')}
 function next(){
-  clearTimeout(timer); qn++;
+  clearTimeout(timer); closeSheet(); qn++;
   const s=pick(); recent=[s.id,...recent].slice(0,Math.min(4,pool().length-1));
   const same=shuffle(SIGNS.filter(x=>x.cat===s.cat&&x.id!==s.id)).slice(0,2);
   const rest=shuffle(SIGNS.filter(x=>x.id!==s.id&&!same.includes(x)));
@@ -326,7 +359,7 @@ function answer(i){
   else{prog[s.id]=0;streak=0;comeback.push({id:s.id,due:qn+3})}
   save(); stats();
   const learnedNow=ok&&box(s.id)===2;
-  $('fbx').innerHTML=`<div class="fb ${ok?'ok':'no'}">${svgOf(s)}<div><p class="t">${ok?(learnedNow?'Верно! Знак выучен ✓':'Верно!'):'Неверно. Это «'+s.name+'»'}</p><p>${s.info}</p><p class="num">Знак ${s.id} · ${CATS[s.cat]}</p></div></div><div style="display:flex;justify-content:center;margin-top:12px"><button class="btn" id="nextb">Дальше →</button></div>`;
+  openSheet(`<div class="in"><div class="fb ${ok?'ok':'no'}">${svgOf(s)}<div style="min-width:0"><p class="t">${ok?(learnedNow?'Верно! Знак выучен ✓':'Верно!'):'Неверно. Это «'+s.name+'»'}</p><p>${s.info}</p><p class="num">Знак ${s.id} · ${CATS[s.cat]}</p></div></div><button class="btn" id="nextb">Дальше →</button></div>`);
   $('nextb').onclick=next; $('nextb').focus({preventScroll:true});
 }
 function chips(){
@@ -343,7 +376,7 @@ function tab(which){
   const q=which==='quiz';
   $('tab-quiz').setAttribute('aria-selected',q);$('tab-all').setAttribute('aria-selected',!q);
   $('quiz').hidden=!q;$('quiz').style.display=q?'flex':'none';$('all').hidden=q;
-  if(!q){clearTimeout(timer);gallery()}else if(cur&&cur.done)next();
+  if(!q){clearTimeout(timer);closeSheet();gallery()}else if(cur&&cur.done)next();
 }
 $('tab-quiz').onclick=()=>tab('quiz');$('tab-all').onclick=()=>tab('all');
 let armed=false;
