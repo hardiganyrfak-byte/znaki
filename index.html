@@ -37,6 +37,10 @@ main{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-lef
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:500 13px var(--body);padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
 .chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.chip::before{content:"";flex:none;width:15px;height:15px;border:2px solid currentColor;border-radius:4px;box-sizing:border-box;display:grid;place-items:center;font-size:11px;font-weight:700;line-height:1}
+.chip[aria-pressed="true"]::before{content:"✓";background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chiphead{font-size:13px;color:var(--muted);margin:0 0 -6px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:18px;align-items:center}
 .q{font-family:var(--display);font-weight:600;font-size:clamp(16px,3.6vw,20px);text-align:center;margin:0;text-wrap:balance}
 .big{width:min(220px,58vw);height:auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.18))}
@@ -76,8 +80,9 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:12px 0 0}
   header{padding-block:10px 0} h1{font-size:18px} .tab{padding:6px 10px;font-size:13px} .road{margin-top:10px;height:4px}
   main{padding-block:10px 16px;gap:10px} #quiz{gap:10px!important}
   .stats{font-size:13px;gap:6px 12px}
-  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  .chip{white-space:nowrap;padding:5px 10px;font-size:12px}
+  .chips{gap:5px}
+  .chip{white-space:nowrap;padding:4px 8px;font-size:12px;gap:5px}
+  .chiphead{display:none}
   .foot{display:none}
   .card{padding:12px;gap:10px;border-radius:12px}
   .big{width:min(140px,20vh)}
@@ -112,6 +117,7 @@ h2{font-family:var(--display);font-weight:600;font-size:17px;margin:12px 0 0}
       <div class="bar"><i id="barfill"></i></div>
       <span class="streak" id="streak">Серия: 0</span>
     </div>
+    <p class="chiphead">Отметь галочками, какие знаки спрашивать:</p>
     <div class="chips" id="chips"></div>
     <div class="card" id="card"></div>
     <div class="foot">
@@ -186,7 +192,16 @@ const endc=i=>`<circle cx="50" cy="50" r="44" fill="${W}" stroke="${K}" stroke-w
 const blueNo=i=>`<circle cx="50" cy="50" r="43" fill="${B}" stroke="${R}" stroke-width="8"/>`+i+`<path d="M23 23 L77 77" stroke="${R}" stroke-width="8"/>`;
 const rslash=`<line x1="22" y1="78" x2="78" y2="22" stroke="${R}" stroke-width="6"/>`;
 const GREY='#9a9a9a';
-const CATS={warn:'Предупреждающие',prio:'Приоритета',ban:'Запрещающие',must:'Предписывающие',spec:'Особых предписаний',info:'Информационные и сервиса'};
+const CATS={warn:'Предупреждающие',prio:'Приоритета',ban:'Запрещающие',must:'Предписывающие',spec:'Особых предписаний',info:'Информационные',serv:'Знаки сервиса',plate:'Таблички'};
+const SHORT={warn:'Предупреждающие',prio:'Приоритета',ban:'Запрещающие',must:'Предписывающие',spec:'Особые',info:'Информационные',serv:'Сервис',plate:'Таблички'};
+const no328=`<circle cx="50" cy="50" r="43" fill="${B}" stroke="${R}" stroke-width="8"/><path d="M23 23 L77 77" stroke="${R}" stroke-width="8"/>`;
+const zone=(s,end)=>`<rect x="10" y="4" width="80" height="92" rx="4" fill="${W}" stroke="${K}" stroke-width="2"/>`+P(s,50,38,.56)+txt('ЗОНА',86,15,K)+(end?`<line x1="14" y1="92" x2="86" y2="8" stroke="${R}" stroke-width="4"/>`:'');
+const bus=(c,bg)=>`<rect x="10" y="18" width="80" height="56" rx="8" fill="${c}"/><rect x="18" y="26" width="64" height="20" rx="3" fill="${bg}"/><circle cx="28" cy="78" r="9" fill="${c}"/><circle cx="72" cy="78" r="9" fill="${c}"/>`;
+const tramC=(c,bg)=>`<g fill="${c}"><rect x="12" y="38" width="76" height="40" rx="6"/><rect x="14" y="78" width="14" height="10"/><rect x="72" y="78" width="14" height="10"/></g><path d="M38 38 L50 18 L62 38 M42 14 L58 14" fill="none" stroke="${c}" stroke-width="4"/><g fill="${bg}"><rect x="20" y="46" width="16" height="14"/><rect x="42" y="46" width="16" height="14"/><rect x="64" y="46" width="16" height="14"/></g>`;
+const house=c=>`<path d="M14 50 L50 18 L86 50 L76 50 L76 84 L24 84 L24 50 Z" fill="${c}"/>`;
+const wide=(i,bg=B)=>`<rect x="4" y="22" width="92" height="56" rx="5" fill="${bg}" stroke="${W}" stroke-width="2"/>`+i;
+const plate=i=>`<rect x="4" y="28" width="92" height="44" rx="3" fill="${W}" stroke="${K}" stroke-width="3"/>`+i;
+const vline=`<path d="M22 36 L22 64" stroke="${K}" stroke-width="3"/>`;
 const SIGNS=[
  ['1.1','warn','Железнодорожный переезд со шлагбаумом','Впереди переезд со шлагбаумом. Сбавь скорость, будь готов остановиться.',warn(P(fence,50,62,.42))],
  ['1.8','warn','Светофорное регулирование','Впереди светофор: перекрёсток или переход, где движение регулирует светофор.',warn(P(light,50,61,.42))],
@@ -227,8 +242,8 @@ const SIGNS=[
  ['5.23.2','spec','Начало населённого пункта','Въезжаешь в город: максимум 60 км/ч.',town],
  ['5.24.2','spec','Конец населённого пункта','Город закончился: за городом обычно можно до 90 км/ч.',town+`<line x1="8" y1="72" x2="92" y2="28" stroke="${R}" stroke-width="4"/>`],
  ['6.4','info','Парковка (парковочное место)','Здесь можно поставить машину.',sq(txt('P',74,64,W))],
- ['7.1','info','Пункт медицинской помощи','Рядом можно получить медпомощь.',svc(`<path d="M44 22 H56 V34 H68 V46 H56 V58 H44 V46 H32 V34 H44 Z" fill="${R}"/>`)],
- ['7.3','info','Автозаправочная станция','Рядом заправка (АЗС).',svc(`<rect x="36" y="22" width="22" height="38" rx="2" fill="${K}"/><rect x="40" y="27" width="14" height="10" fill="${W}"/><path d="M58 30 H64 V52 Q64 56 60 56" fill="none" stroke="${K}" stroke-width="3"/><rect x="32" y="58" width="30" height="4" fill="${K}"/>`)],
+ ['7.1','serv','Пункт медицинской помощи','Рядом можно получить медпомощь.',svc(`<path d="M44 22 H56 V34 H68 V46 H56 V58 H44 V46 H32 V34 H44 Z" fill="${R}"/>`)],
+ ['7.3','serv','Автозаправочная станция','Рядом заправка (АЗС).',svc(`<rect x="36" y="22" width="22" height="38" rx="2" fill="${K}"/><rect x="40" y="27" width="14" height="10" fill="${W}"/><path d="M58 30 H64 V52 Q64 56 60 56" fill="none" stroke="${K}" stroke-width="3"/><rect x="32" y="58" width="30" height="4" fill="${K}"/>`)],
  ['1.2','warn','Железнодорожный переезд без шлагбаума','Впереди переезд без шлагбаума. Посмотри по сторонам: поезд не остановится.',warn(P(loco,50,62,.44))],
  ['1.3.1','warn','Однопутная железная дорога','Стоит прямо у переезда без шлагбаума через один путь.',xcross],
  ['1.3.2','warn','Многопутная железная дорога','Стоит у переезда без шлагбаума через два пути и больше.',P(xcross,50,38,.72)+`<path d="M28 98 L50 78 L72 98" fill="none" stroke="${R}" stroke-width="13"/><path d="M28 98 L50 78 L72 98" fill="none" stroke="${W}" stroke-width="7"/>`],
@@ -297,6 +312,60 @@ const SIGNS=[
  ['4.5.2','must','Пешеходная и велосипедная дорожка с совмещённым движением','Общая дорожка для пешеходов и велосипедистов.',blueC(P(bike(W),50,32,.36)+P(man(W),50,68,.34))],
  ['4.6','must','Ограничение минимальной скорости','Медленнее числа на знаке ехать нельзя (здесь 40 км/ч).',blueC(txt('40',63,38,W))],
  ['4.7','must','Конец зоны ограничения минимальной скорости','Ограничение минимальной скорости закончилось.',blueC(txt('40',63,38,W)+rslash)],
+ ['5.1','spec','Автомагистраль','Скоростная дорога: можно до 110 км/ч, нельзя пешеходам, разворачиваться и останавливаться вне спецмест.',sq(`<path d="M18 90 L42 30 L48 30 L32 90 Z M82 90 L58 30 L52 30 L68 90 Z" fill="${W}"/><rect x="12" y="40" width="76" height="9" fill="${W}"/>`)],
+ ['5.2','spec','Конец автомагистрали','Автомагистраль закончилась, её особые правила больше не действуют.',sq(`<path d="M18 90 L42 30 L48 30 L32 90 Z M82 90 L58 30 L52 30 L68 90 Z" fill="${W}"/><rect x="12" y="40" width="76" height="9" fill="${W}"/>`+rslash)],
+ ['5.3','spec','Дорога для автомобилей','Дорога только для машин: нельзя пешеходам, велосипедам, тракторам.',sq(P(carSide(W),50,52,.66))],
+ ['5.4','spec','Конец дороги для автомобилей','Дорога для автомобилей закончилась.',sq(P(carSide(W),50,52,.66)+rslash)],
+ ['5.7.1','spec','Выезд на дорогу с односторонним движением (направо)','Справа дорога с односторонним движением: поворачивать туда можно только по стрелке.',wide(rot(90,P(up(W),50,50,.52)))],
+ ['5.7.2','spec','Выезд на дорогу с односторонним движением (налево)','Слева дорога с односторонним движением: поворачивать туда можно только по стрелке.',wide(rot(-90,P(up(W),50,50,.52)))],
+ ['5.8','spec','Реверсивное движение','Здесь полосы могут менять направление. Следи за реверсивными светофорами.',sq(P2(up(W),62,50,.3,.62)+P2(rot(180,up(W)),38,50,.3,.62)+`<rect x="48" y="14" width="4" height="72" fill="${W}"/>`)],
+ ['5.9','spec','Конец реверсивного движения','Участок с реверсивными полосами закончился.',sq(P2(up(W),62,50,.3,.62)+P2(rot(180,up(W)),38,50,.3,.62)+`<rect x="48" y="14" width="4" height="72" fill="${W}"/>`+rslash)],
+ ['5.14','spec','Полоса для маршрутных транспортных средств','Полоса только для автобусов, троллейбусов и такси. Обычным машинам туда нельзя.',sq(P(bus(W,B),42,40,.46)+P(up(W),42,74,.26)+`<rect x="76" y="12" width="6" height="76" fill="${W}"/>`)],
+ ['5.15.1','spec','Направления движения по полосам','Показывает, куда можно ехать из каждой полосы.',sq(P(left(W),24,54,.36)+P(up(W),50,54,.36)+P(strRight(W),76,54,.36))],
+ ['5.15.2','spec','Направления движения по полосе','Показывает, куда можно ехать из этой полосы.',wide(P(strRight(W),50,50,.48))],
+ ['5.16','spec','Место остановки автобуса и (или) троллейбуса','Остановка автобуса. Стоять тут обычным машинам нельзя.',sq(P(bus(W,B),50,50,.66))],
+ ['5.17','spec','Место остановки трамвая','Остановка трамвая: пропусти людей, которые идут к трамваю.',sq(P(tramC(W,B),50,50,.66))],
+ ['5.21','spec','Жилая зона','Дворы: не больше 20 км/ч, пешеходы ходят где угодно и всегда главнее.',sq(P(house(W),34,44,.48)+P(man(W),70,58,.42)+`<circle cx="30" cy="80" r="5" fill="${W}"/>`)],
+ ['5.22','spec','Конец жилой зоны','Жилая зона закончилась. Выезжая со двора, уступи всем.',sq(P(house(W),34,44,.48)+P(man(W),70,58,.42)+`<circle cx="30" cy="80" r="5" fill="${W}"/>`+rslash)],
+ ['5.25','spec','Начало населённого пункта (синий знак)','Посёлок, но правила города НЕ действуют: скорость как за городом.',wide(txt('ТВЕРЬ',57,17,W))],
+ ['5.26','spec','Конец населённого пункта (синий знак)','Конец посёлка с синим знаком.',wide(txt('ТВЕРЬ',57,17,W)+`<line x1="8" y1="72" x2="92" y2="28" stroke="${R}" stroke-width="4"/>`)],
+ ['5.27','spec','Зона с ограничением стоянки','Дальше целый район, где стоянка запрещена.',zone(no328,false)],
+ ['5.28','spec','Конец зоны с ограничением стоянки','Район с запретом стоянки закончился.',zone(no328,true)],
+ ['5.29','spec','Зона регулируемой стоянки','Дальше район, где стоянка платная или по правилам.',zone(sq(txt('P',74,64,W)),false)],
+ ['5.31','spec','Зона с ограничением максимальной скорости','Во всём этом районе нельзя быстрее числа на знаке.',zone(ring(txt('40',63,38,K)),false)],
+ ['5.32','spec','Конец зоны с ограничением максимальной скорости','Район с ограничением скорости закончился.',zone(ring(txt('40',63,38,K)),true)],
+ ['5.33','spec','Пешеходная зона','Дальше улицы только для пешеходов.',zone(blueC(P(man(W),50,52,.62)),false)],
+ ['5.34','spec','Конец пешеходной зоны','Пешеходная зона закончилась.',zone(blueC(P(man(W),50,52,.62)),true)],
+ ['6.2','info','Рекомендуемая скорость','Советует, с какой скоростью лучше ехать здесь. Это не запрет.',sq(txt('50',64,40,W))],
+ ['6.3.1','info','Место для разворота','Здесь можно развернуться (налево поворачивать нельзя).',sq(P(uturn(W),50,52,.6))],
+ ['6.6','info','Подземный пешеходный переход','Рядом подземный переход для пешеходов.',sq(`<rect x="10" y="30" width="80" height="5" fill="${W}"/><path d="M10 44 L30 44 L30 56 L46 56 L46 68 L62 68 L62 80 L90 80 L90 86 L10 86 Z" fill="${W}"/>`+P(man(W),74,56,.3))],
+ ['6.7','info','Надземный пешеходный переход','Рядом надземный переход (мост) для пешеходов.',sq(`<rect x="10" y="30" width="80" height="6" fill="${W}"/><path d="M10 86 L10 76 L26 76 L26 64 L42 64 L42 52 L58 52 L58 36 L64 36 L64 86 Z" fill="${W}"/>`+P(man(W),76,20,.26))],
+ ['6.8.1','info','Тупик','Дорога дальше не продолжается, проезда нет.',sq(`<rect x="44" y="34" width="12" height="54" fill="${W}"/><rect x="24" y="18" width="52" height="16" fill="${R}"/>`)],
+ ['6.10.1','info','Указатель направления','Показывает, куда ехать до города и сколько километров.',`<path d="M4 30 L78 30 L96 50 L78 70 L4 70 Z" fill="${B}" stroke="${W}" stroke-width="2"/>`+txtx('Тверь 25',44,56,15,W)],
+ ['6.11','info','Наименование объекта','Название реки, перевала или другого объекта.',`<rect x="4" y="32" width="92" height="36" rx="3" fill="${B}" stroke="${W}" stroke-width="2"/>`+txt('р. Волга',56,16,W)],
+ ['6.13','info','Километровый знак','Сколько километров от начала дороги.',`<rect x="28" y="14" width="44" height="72" rx="3" fill="${B}" stroke="${W}" stroke-width="2"/>`+txt('25',58,22,W)],
+ ['6.16','info','Стоп-линия','Место, где нужно остановиться на красный свет.',sq(txt('СТОП',48,20,W)+`<rect x="16" y="62" width="68" height="6" fill="${W}"/>`)],
+ ['7.4','serv','Техническое обслуживание автомобилей','Рядом автосервис.',svc(P(rot(45,`<rect x="44" y="26" width="12" height="60" fill="${K}"/><circle cx="50" cy="22" r="13" fill="${K}"/><rect x="46" y="6" width="8" height="16" fill="${W}"/>`),50,40,.6))],
+ ['7.5','serv','Мойка автомобилей','Рядом автомойка.',svc(P(carSide(K),50,50,.46)+`<g fill="${K}"><circle cx="36" cy="24" r="3.5"/><circle cx="50" cy="20" r="3.5"/><circle cx="64" cy="24" r="3.5"/></g>`)],
+ ['7.6','serv','Телефон','Рядом телефон.',svc(`<path d="M30 22 L40 20 L46 32 L40 38 Q44 48 52 52 L58 46 L70 52 L68 62 Q66 66 58 66 Q30 60 28 30 Q28 24 30 22 Z" fill="${K}"/>`)],
+ ['7.7','serv','Пункт питания','Рядом кафе или столовая.',svc(`<path d="M30 18 L30 32 Q30 38 37 38 Q44 38 44 32 L44 18" fill="none" stroke="${K}" stroke-width="3"/><rect x="35" y="18" width="4" height="44" fill="${K}"/><path d="M58 18 Q70 26 64 42 L62 42 L62 62 L58 62 Z" fill="${K}"/>`)],
+ ['7.8','serv','Питьевая вода','Рядом можно набрать питьевой воды.',svc(`<path d="M26 28 L50 28 L50 22 L58 22 L58 28 L66 28 Q74 28 74 36 L74 42 L66 42 L66 38 L26 38 Z" fill="${K}"/><path d="M70 48 Q65 55 70 60 Q75 55 70 48 Z" fill="${K}"/>`)],
+ ['7.9','serv','Гостиница или мотель','Рядом можно переночевать.',svc(`<rect x="26" y="28" width="6" height="32" fill="${K}"/><rect x="26" y="46" width="48" height="8" fill="${K}"/><rect x="68" y="46" width="6" height="14" fill="${K}"/><circle cx="38" cy="40" r="5" fill="${K}"/><rect x="44" y="38" width="28" height="8" rx="3" fill="${K}"/>`)],
+ ['7.11','serv','Место отдыха','Рядом место, где можно остановиться и отдохнуть.',svc(`<path d="M50 14 L66 40 L58 40 L70 56 L30 56 L42 40 L34 40 Z" fill="${K}"/><rect x="47" y="56" width="6" height="8" fill="${K}"/>`)],
+ ['7.18','serv','Туалет','Рядом туалет.',svc(txtx('WC',50,50,24,K))],
+ ['8.1.1','plate','Расстояние до объекта','Табличка: через сколько метров начинается то, о чём говорит знак.',plate(txt('150 м',58,20,K))],
+ ['8.2.1','plate','Зона действия','Табличка: на каком расстоянии действует знак.',plate(vline+`<polygon points="16,40 28,40 22,32" fill="${K}"/><polygon points="16,60 28,60 22,68" fill="${K}"/>`+txtx('100 м',60,57,18,K))],
+ ['8.2.3','plate','Конец зоны действия','Табличка: здесь действие знака заканчивается.',plate(`<path d="M50 32 L50 60" stroke="${K}" stroke-width="4"/><polygon points="40,56 60,56 50,68" fill="${K}"/>`)],
+ ['8.2.4','plate','Вы находитесь в зоне действия','Табличка: напоминает, что знак всё ещё действует.',plate(`<path d="M50 36 L50 64" stroke="${K}" stroke-width="4"/><polygon points="40,40 60,40 50,30" fill="${K}"/><polygon points="40,60 60,60 50,70" fill="${K}"/>`)],
+ ['8.3.1','plate','Направление действия (направо)','Табличка: знак действует в сторону стрелки.',plate(`<path d="M20 50 L72 50" stroke="${K}" stroke-width="4"/><polygon points="68,40 68,60 82,50" fill="${K}"/>`)],
+ ['8.3.3','plate','Направления действия (в обе стороны)','Табличка: знак действует в обе стороны.',plate(`<path d="M28 50 L72 50" stroke="${K}" stroke-width="4"/><polygon points="68,40 68,60 82,50" fill="${K}"/><polygon points="32,40 32,60 18,50" fill="${K}"/>`)],
+ ['8.4.1','plate','Вид транспортного средства (грузовые)','Табличка: знак касается только грузовиков.',plate(P(truck(K),50,50,.42))],
+ ['8.4.3','plate','Вид транспортного средства (легковые)','Табличка: знак касается только легковых машин.',plate(P(carSide(K),50,50,.42))],
+ ['8.5.4','plate','Время действия','Табличка: знак действует только в это время.',plate(txt('8.00–17.30',57,16,K))],
+ ['8.13','plate','Направление главной дороги','Табличка: толстая линия показывает, куда поворачивает главная дорога.',plate(`<path d="M50 50 L50 32 M50 50 L80 50" stroke="${K}" stroke-width="2.5"/><path d="M50 70 L50 50 L22 36" fill="none" stroke="${K}" stroke-width="7"/>`)],
+ ['8.17','plate','Инвалиды','Табличка: место (например, парковка) для людей с инвалидностью.',plate(`<circle cx="46" cy="58" r="10" fill="none" stroke="${K}" stroke-width="3"/><circle cx="44" cy="34" r="4" fill="${K}"/><path d="M44 40 L44 52 L58 52 L62 64" fill="none" stroke="${K}" stroke-width="4"/>`)],
+ ['8.23','plate','Фотовидеофиксация','Табличка: здесь нарушения снимает камера.',plate(`<rect x="32" y="40" width="30" height="20" rx="3" fill="${K}"/><polygon points="62,44 76,38 76,62 62,56" fill="${K}"/><circle cx="44" cy="50" r="5" fill="${W}"/>`)],
+ ['8.24','plate','Работает эвакуатор','Табличка: неправильно поставленную машину увезёт эвакуатор.',plate(P(truck(K),38,52,.34)+`<path d="M54 44 L78 34 L78 58" fill="none" stroke="${K}" stroke-width="3"/><path d="M74 58 Q78 64 82 58" fill="none" stroke="${K}" stroke-width="3"/>`)],
 ].map(([id,cat,name,info,svg])=>({id,cat,name,info,svg})).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
 const BY=Object.fromEntries(SIGNS.map(s=>[s.id,s]));
 const svgOf=(s,label)=>`<svg viewBox="0 0 100 100" role="img" aria-label="${label??s.name}">${s.svg}</svg>`;
@@ -304,7 +373,10 @@ const svgOf=(s,label)=>`<svg viewBox="0 0 100 100" role="img" aria-label="${labe
 const KEY='znaki-pdd-v1';
 let prog={}; try{prog=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(prog))}catch(e){}};
-let cats=new Set(Object.keys(CATS)), streak=0, qn=0, recent=[], comeback=[], cur=null, timer=null;
+let cats=new Set(Object.keys(CATS));
+try{const c=JSON.parse(localStorage.getItem('znaki-cats'));if(Array.isArray(c)){const v=c.filter(k=>k in CATS);if(v.length)cats=new Set(v)}}catch(e){}
+const saveCats=()=>{try{localStorage.setItem('znaki-cats',JSON.stringify([...cats]))}catch(e){}};
+let streak=0, qn=0, recent=[], comeback=[], cur=null, timer=null;
 const $=id=>document.getElementById(id);
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const pool=()=>SIGNS.filter(s=>cats.has(s.cat));
@@ -363,9 +435,10 @@ function answer(i){
   $('nextb').onclick=next; $('nextb').focus({preventScroll:true});
 }
 function chips(){
-  $('chips').innerHTML=Object.entries(CATS).map(([k,v])=>`<button class="chip" id="c-${k}" aria-pressed="${cats.has(k)}">${v}</button>`).join('');
+  $('chips').innerHTML=Object.keys(CATS).map(k=>`<button class="chip" id="c-${k}" aria-pressed="${cats.has(k)}" title="${CATS[k]}">${SHORT[k]}</button>`).join('');
   Object.keys(CATS).forEach(k=>$('c-'+k).onclick=()=>{
     if(cats.has(k)){if(cats.size>1)cats.delete(k)}else cats.add(k);
+    saveCats();
     recent=[];chips();next();
   });
 }
