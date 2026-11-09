@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тренажёр дорожных знаков</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Golos+Text:wght@400;500;600&display=swap">
+<style>
+/* Layout: одна колонка-«дорога», шапка с разметкой, по центру карточка вопроса */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --ink:#15202c; --muted:#5a6878; --line:#d6dde6;
+  --accent:#1a5bb0; --accent-ink:#ffffff; --ok:#1d8a4b; --ok-bg:#e3f4ea; --bad:#c62828; --bad-bg:#fbe7e7; --mark:#f5c400;
+  --asphalt:#2b323b;
+  --display:"Unbounded", "Arial Black", sans-serif;
+  --body:"Golos Text", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151b; --surface:#1a212a; --ink:#e7ecf2; --muted:#94a1b0; --line:#2b3540;
+  --accent:#5b95e3; --accent-ink:#0d1219; --ok:#41b874; --ok-bg:#16301f; --bad:#ef5f5f; --bad-bg:#3a1b1b; --mark:#f5c400; --asphalt:#0b0f13; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151b; --surface:#1a212a; --ink:#e7ecf2; --muted:#94a1b0; --line:#2b3540;
+  --accent:#5b95e3; --accent-ink:#0d1219; --ok:#41b874; --ok-bg:#16301f; --bad:#ef5f5f; --bad-bg:#3a1b1b; --mark:#f5c400; --asphalt:#0b0f13; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+header{background:var(--asphalt);color:#fff;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 0}
+.hwrap{max-width:760px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(20px,4.6vw,28px);margin:0;letter-spacing:.01em;text-wrap:balance}
+.tabs{display:flex;gap:6px}
+.tab{font:600 14px var(--body);color:#cfd7e0;background:transparent;border:1px solid #4a5560;border-radius:999px;padding:8px 14px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--mark);color:#1b1b1b;border-color:var(--mark)}
+.road{height:6px;margin-top:18px;background:repeating-linear-gradient(90deg,var(--mark) 0 34px,transparent 34px 60px)}
+main{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
+.stats{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;font-variant-numeric:tabular-nums}
+.bar{flex:1 1 200px;height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s}
+.stat b{font-weight:600}
+.streak{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:500 13px var(--body);padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:18px;align-items:center}
+.q{font-family:var(--display);font-weight:600;font-size:clamp(16px,3.6vw,20px);text-align:center;margin:0;text-wrap:balance}
+.big{width:min(220px,58vw);height:auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.18))}
+.opts{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.opts.text{grid-template-columns:1fr}}
+.opt{font:500 15px var(--body);text-align:left;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;gap:10px;align-items:center;min-width:0}
+.opt .k{flex:none;width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.opt.pic{justify-content:center;padding:14px;position:relative}
+.opt.pic .k{position:absolute;left:8px;top:8px}
+.opt.pic svg{width:min(120px,30vw);height:auto}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:focus-visible,.tab:focus-visible,.chip:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt:disabled{cursor:default}
+.fb{width:100%;border-radius:12px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start}
+.fb.ok{background:var(--ok-bg)} .fb.no{background:var(--bad-bg)}
+.fb svg{flex:none;width:64px;height:64px}
+.fb .t{font-weight:600;margin:0 0 4px}
+.fb.ok .t{color:var(--ok)} .fb.no .t{color:var(--bad)}
+.fb p{margin:0}
+.num{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.btn{font:600 15px var(--body);background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:12px 22px;cursor:pointer}
+.ghost{font:500 13px var(--body);background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:4px}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:13px}
+h2{font-family:var(--display);font-weight:600;font-size:17px;margin:12px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.gi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:flex-start;min-width:0}
+.gi svg{flex:none;width:58px;height:58px}
+.gi .n{font-weight:600;font-size:14px;margin:2px 0}
+.gi .d{font-size:13px;color:var(--muted);margin:0}
+.gi .ok{color:var(--ok);font-size:12px;font-weight:600}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header><div class="hwrap">
+  <h1>Знаки ПДД</h1>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-quiz" role="tab" aria-selected="true">Тренировка</button>
+    <button class="tab" id="tab-all" role="tab" aria-selected="false">Все знаки</button>
+  </div>
+</div><div class="road"></div></header>
+
+<main>
+  <section id="quiz" style="display:flex;flex-direction:column;gap:16px">
+    <div class="stats">
+      <span class="stat">Выучено <b id="learned">0</b> из <b id="total">0</b></span>
+      <div class="bar"><i id="barfill"></i></div>
+      <span class="streak" id="streak">Серия: 0</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="card" id="card"></div>
+    <div class="foot">
+      <span>Клавиши 1–4 — ответ, Enter — дальше. Знак выучен после 2 верных ответов подряд.</span>
+      <button class="ghost" id="reset">Сбросить прогресс</button>
+    </div>
+  </section>
+  <section id="all" hidden></section>
+</main>
+
+<script>
+const R='#d52b1e',B='#1a5bb0',Y='#f5c400',K='#1b1b1b',W='#ffffff',G='#1e9e4a';
+const P=(i,cx,cy,s)=>`<g transform="translate(${cx} ${cy}) scale(${s}) translate(-50 -50)">${i}</g>`;
+const P2=(i,cx,cy,sx,sy)=>`<g transform="translate(${cx} ${cy}) scale(${sx} ${sy}) translate(-50 -50)">${i}</g>`;
+const rot=(a,i)=>`<g transform="rotate(${a} 50 50)">${i}</g>`;
+const warn=i=>`<polygon points="50,9 94,87 6,87" fill="${W}" stroke="${R}" stroke-width="9" stroke-linejoin="round"/>`+i;
+const ring=i=>`<circle cx="50" cy="50" r="42" fill="${W}" stroke="${R}" stroke-width="9"/>`+i;
+const blueC=i=>`<circle cx="50" cy="50" r="45" fill="${B}" stroke="${W}" stroke-width="2"/>`+i;
+const sq=i=>`<rect x="6" y="6" width="88" height="88" rx="7" fill="${B}" stroke="${W}" stroke-width="2"/>`+i;
+const svc=i=>`<rect x="14" y="4" width="72" height="92" rx="5" fill="${B}" stroke="${W}" stroke-width="2"/><rect x="22" y="12" width="56" height="56" fill="${W}"/>`+i;
+const slash=`<line x1="23" y1="23" x2="77" y2="77" stroke="${R}" stroke-width="8"/>`;
+const txt=(t,y,sz,c)=>`<text x="50" y="${y}" font-size="${sz}" font-weight="800" text-anchor="middle" fill="${c}" font-family="Arial, Helvetica, sans-serif">${t}</text>`;
+
+const man=c=>`<g fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M50 32 L46 58 L35 86 M46 58 L61 84 M49 36 L36 50 M49 36 L64 47"/></g><circle cx="53" cy="17" r="10" fill="${c}"/>`;
+const up=c=>`<path d="M50 6 L80 40 L60 40 L60 94 L40 94 L40 40 L20 40 Z" fill="${c}"/>`;
+const right=c=>`<path d="M36 96 L36 58 Q36 40 54 40 L64 40" fill="none" stroke="${c}" stroke-width="16"/><path d="M62 16 L94 40 L62 64 Z" fill="${c}"/>`;
+const left=c=>`<g transform="translate(100 0) scale(-1 1)">${right(c)}</g>`;
+const uturn=c=>`<path d="M70 96 L70 44 Q70 18 47 18 Q24 18 24 44 L24 56" fill="none" stroke="${c}" stroke-width="13"/><path d="M6 54 L42 54 L24 84 Z" fill="${c}"/>`;
+const strRight=c=>`<path d="M38 96 L38 28" stroke="${c}" stroke-width="14"/><path d="M38 4 L60 32 L16 32 Z" fill="${c}"/><path d="M38 76 Q38 56 58 56 L68 56" fill="none" stroke="${c}" stroke-width="14"/><path d="M66 38 L94 56 L66 74 Z" fill="${c}"/>`;
+const carRear=c=>`<rect x="24" y="18" width="52" height="28" rx="9" fill="${c}"/><rect x="31" y="24" width="38" height="13" rx="4" fill="${W}"/><rect x="12" y="40" width="76" height="32" rx="7" fill="${c}"/><rect x="16" y="68" width="16" height="16" rx="3" fill="${c}"/><rect x="68" y="68" width="16" height="16" rx="3" fill="${c}"/>`;
+const truck=c=>`<rect x="4" y="26" width="60" height="40" fill="${c}"/><path d="M66 38 L82 38 L96 54 L96 66 L66 66 Z" fill="${c}"/><circle cx="22" cy="72" r="10" fill="${c}"/><circle cx="80" cy="72" r="10" fill="${c}"/>`;
+const bump=c=>`<path d="M4 82 L28 82 Q50 36 72 82 L96 82 L96 92 L4 92 Z" fill="${c}"/>`;
+const fence=`<g fill="${K}"><rect x="12" y="20" width="10" height="70"/><rect x="45" y="20" width="10" height="70"/><rect x="78" y="20" width="10" height="70"/><rect x="6" y="32" width="88" height="11"/><rect x="6" y="58" width="88" height="11"/></g>`;
+const light=`<rect x="34" y="6" width="32" height="88" rx="7" fill="${K}"/><circle cx="50" cy="24" r="10" fill="${R}"/><circle cx="50" cy="50" r="10" fill="${Y}"/><circle cx="50" cy="76" r="10" fill="${G}"/>`;
+const narrow=`<path d="M28 6 L28 40 L40 62 L40 94 M72 6 L72 40 L60 62 L60 94" fill="none" stroke="${K}" stroke-width="9"/>`;
+const zebra=`<g fill="${K}"><rect x="2" y="91" width="18" height="8"/><rect x="28" y="91" width="18" height="8"/><rect x="54" y="91" width="18" height="8"/><rect x="80" y="91" width="18" height="8"/></g>`;
+const works=`<path d="M64 42 L86 80" stroke="${K}" stroke-width="5" stroke-linecap="round"/><path d="M70 98 L100 98 L88 78 Z" fill="${K}"/>`;
+const diamond=`<rect x="18.5" y="18.5" width="63" height="63" rx="3" transform="rotate(45 50 50)" fill="${W}" stroke="#666" stroke-width="1"/><rect x="28" y="28" width="44" height="44" transform="rotate(45 50 50)" fill="${Y}"/>`;
+const octa=`<polygon points="92.5,32.4 67.6,7.5 32.4,7.5 7.5,32.4 7.5,67.6 32.4,92.5 67.6,92.5 92.5,67.6" fill="${R}" stroke="${W}" stroke-width="2.5"/>`;
+let roundabout='';for(const a of [0,120,240])roundabout+=rot(a,`<path d="M50 19 A31 31 0 0 0 23.2 34.5" fill="none" stroke="${W}" stroke-width="9"/><polygon points="31,39 15.4,30 17.2,44.9" fill="${W}"/>`);
+const town=`<rect x="4" y="24" width="92" height="52" rx="4" fill="${W}" stroke="${K}" stroke-width="3"/>`+txt('ТВЕРЬ',57,17,K);
+const wtri=`<polygon points="50,14 88,82 12,82" fill="${W}"/>`;
+
+const txtx=(t,x,y,sz,c)=>`<text x="${x}" y="${y}" font-size="${sz}" font-weight="800" text-anchor="middle" fill="${c}" font-family="Arial, Helvetica, sans-serif">${t}</text>`;
+const mirror=i=>`<g transform="translate(100 0) scale(-1 1)">${i}</g>`;
+const ring3=c=>{let s='';for(const a of [0,120,240])s+=rot(a,`<path d="M50 19 A31 31 0 0 0 23.2 34.5" fill="none" stroke="${c}" stroke-width="9"/><polygon points="31,39 15.4,30 17.2,44.9" fill="${c}"/>`);return s};
+const carSide=c=>`<path d="M6 62 L16 60 L28 40 L68 40 L82 58 L94 61 L94 76 L6 76 Z" fill="${c}"/><circle cx="28" cy="78" r="10" fill="${c}"/><circle cx="74" cy="78" r="10" fill="${c}"/>`;
+const bike=c=>`<g fill="none" stroke="${c}" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"><circle cx="24" cy="66" r="16"/><circle cx="76" cy="66" r="16"/><path d="M24 66 L42 38 L66 38 L76 66 M42 38 L52 66 L66 38 M36 30 L48 30 M66 38 L62 26 L72 26"/></g>`;
+const moto=c=>`<g fill="none" stroke="${c}" stroke-width="7"><circle cx="20" cy="70" r="14"/><circle cx="80" cy="70" r="14"/><path d="M20 70 L40 50 L66 50 L80 70 M62 50 L70 30 L82 30"/></g><rect x="32" y="40" width="32" height="16" rx="6" fill="${c}"/>`;
+const tractor=c=>`<circle cx="30" cy="66" r="22" fill="${c}"/><circle cx="30" cy="66" r="8" fill="${W}"/><circle cx="80" cy="78" r="12" fill="${c}"/><rect x="18" y="14" width="34" height="32" fill="${c}"/><rect x="24" y="20" width="20" height="16" fill="${W}"/><rect x="44" y="50" width="48" height="18" fill="${c}"/>`;
+const horse=c=>`<path d="M18 40 L68 40 L82 20 L96 26 L86 44 L80 50 L80 80 L73 80 L71 58 L32 58 L30 80 L23 80 L21 56 Q8 50 18 40 Z" fill="${c}"/>`;
+const cow=c=>`<path d="M14 34 L70 34 L74 26 L80 18 L80 28 L92 32 L94 46 L82 50 L76 46 L74 76 L66 76 L64 56 L28 56 L26 76 L18 76 L16 54 L6 44 Z" fill="${c}"/>`;
+const deer=c=>`<path d="M10 72 L28 52 L60 46 L72 30 L68 14 L76 22 L80 10 L82 24 L92 28 L82 40 L72 56 L92 74 L84 80 L62 62 L40 64 L16 84 Z" fill="${c}"/>`;
+const plane=c=>`<path d="M50 6 Q56 6 56 18 L56 40 L94 60 L94 68 L56 58 L56 80 L68 88 L68 94 L50 90 L32 94 L32 88 L44 80 L44 58 L6 68 L6 60 L44 40 L44 18 Q44 6 50 6 Z" fill="${c}"/>`;
+const horn=c=>`<path d="M8 40 L30 40 L72 14 L72 86 L30 60 L8 60 Z" fill="${c}"/><path d="M80 34 Q90 50 80 66" fill="none" stroke="${c}" stroke-width="5"/>`;
+const rocks=c=>`<path d="M60 6 L94 6 L94 94 L72 94 Q78 56 60 6 Z" fill="${c}"/><circle cx="40" cy="38" r="9" fill="${c}"/><circle cx="30" cy="64" r="11" fill="${c}"/><circle cx="52" cy="82" r="7" fill="${c}"/>`;
+const sock=c=>`<rect x="12" y="8" width="7" height="86" fill="${c}"/><path d="M19 14 L90 28 L90 42 L19 54 Z" fill="${c}"/>`;
+const tunnel=c=>`<path d="M8 92 L8 50 Q8 8 50 8 Q92 8 92 50 L92 92 L72 92 L72 54 Q72 30 50 30 Q28 30 28 54 L28 92 Z" fill="${c}"/>`;
+const zig=c=>`<path d="M36 96 L36 66 L64 44 L64 26" fill="none" stroke="${c}" stroke-width="14" stroke-linejoin="round"/><path d="M64 0 L88 30 L40 30 Z" fill="${c}"/>`;
+const lr=c=>`<path d="M50 96 L50 62 Q50 44 68 44 L72 44 M50 62 Q50 44 32 44 L28 44" fill="none" stroke="${c}" stroke-width="14"/><path d="M70 22 L96 44 L70 66 Z" fill="${c}"/><path d="M30 22 L4 44 L30 66 Z" fill="${c}"/>`;
+const loco=`<g fill="${K}"><rect x="8" y="44" width="56" height="26" rx="4"/><rect x="58" y="24" width="32" height="46"/><rect x="14" y="26" width="12" height="20"/><circle cx="24" cy="78" r="10"/><circle cx="50" cy="78" r="10"/><circle cx="76" cy="78" r="10"/></g><rect x="64" y="30" width="20" height="14" fill="${W}"/>`;
+const tram=`<g fill="${K}"><rect x="12" y="38" width="76" height="40" rx="6"/><rect x="14" y="78" width="14" height="10"/><rect x="72" y="78" width="14" height="10"/></g><path d="M38 38 L50 18 L62 38 M42 14 L58 14" fill="none" stroke="${K}" stroke-width="4"/><g fill="${W}"><rect x="20" y="46" width="16" height="14"/><rect x="42" y="46" width="16" height="14"/><rect x="64" y="46" width="16" height="14"/></g>`;
+const bridge=`<g fill="${K}"><polygon points="4,72 38,72 42,24 35,22 30,64 4,64"/><polygon points="96,72 62,72 58,24 65,22 70,64 96,64"/></g><path d="M4 88 Q14 80 24 88 T44 88 T64 88 T84 88 T104 88" fill="none" stroke="${K}" stroke-width="5"/>`;
+const waves=`<path d="M4 90 Q14 82 24 90 T44 90 T64 90 T84 90 T104 90" fill="none" stroke="${K}" stroke-width="5"/>`;
+const xbar=`<rect x="4" y="40" width="92" height="20" fill="${W}" stroke="${R}" stroke-width="4"/>`;
+const xcross=rot(45,xbar)+rot(-45,xbar);
+const appr=`<rect x="32" y="4" width="36" height="92" fill="${W}" stroke="#888" stroke-width="1.5"/>`+[12,40,68].map(y=>`<polygon points="32,${y+20} 68,${y} 68,${y+12} 32,${y+32}" fill="${R}"/>`).join('');
+const chevR=[12,38,64].map(x=>`<polygon points="${x},30 ${x+12},30 ${x+26},50 ${x+12},70 ${x},70 ${x+14},50" fill="${W}"/>`).join('');
+const chevBox=i=>`<rect x="4" y="24" width="92" height="52" fill="${R}"/>`+i;
+const endLines=`<g stroke="${K}" stroke-width="2.4"><line x1="24" y1="80" x2="80" y2="24"/><line x1="20" y1="74" x2="74" y2="20"/><line x1="28" y1="84" x2="84" y2="28"/></g>`;
+const endc=i=>`<circle cx="50" cy="50" r="44" fill="${W}" stroke="${K}" stroke-width="1.5"/>`+i+endLines;
+const blueNo=i=>`<circle cx="50" cy="50" r="43" fill="${B}" stroke="${R}" stroke-width="8"/>`+i+`<path d="M23 23 L77 77" stroke="${R}" stroke-width="8"/>`;
+const rslash=`<line x1="22" y1="78" x2="78" y2="22" stroke="${R}" stroke-width="6"/>`;
+const GREY='#9a9a9a';
+const CATS={warn:'Предупреждающие',prio:'Приоритета',ban:'Запрещающие',must:'Предписывающие',spec:'Особых предписаний',info:'Информационные и сервиса'};
+const SIGNS=[
+ ['1.1','warn','Железнодорожный переезд со шлагбаумом','Впереди переезд со шлагбаумом. Сбавь скорость, будь готов остановиться.',warn(P(fence,50,62,.42))],
+ ['1.8','warn','Светофорное регулирование','Впереди светофор: перекрёсток или переход, где движение регулирует светофор.',warn(P(light,50,61,.42))],
+ ['1.11.1','warn','Опасный поворот направо','Впереди крутой поворот направо с плохим обзором. Сбрось скорость заранее.',warn(P(right(K),50,62,.42))],
+ ['1.17','warn','Искусственная неровность','Предупреждение: впереди «лежачий полицейский». Сбавь скорость.',warn(P(bump(K),50,64,.48))],
+ ['1.20.1','warn','Сужение дороги','Дорога впереди сужается с обеих сторон.',warn(P(narrow,50,62,.42))],
+ ['1.22','warn','Пешеходный переход (предупреждающий)','Предупреждает заранее: скоро пешеходный переход. Будь готов пропустить людей.',warn(P(man(K)+zebra,50,61,.44))],
+ ['1.23','warn','Дети','Рядом школа, садик или площадка. Дети могут выбежать на дорогу.',warn(P(man(K),42,60,.42)+P(man(K),61,66,.3))],
+ ['1.25','warn','Дорожные работы','Впереди ремонт дороги: рабочие, техника, сужение.',warn(P(man(K)+works,48,62,.44))],
+ ['2.1','prio','Главная дорога','Ты едешь по главной: на перекрёстках без светофора тебе уступают.',diamond],
+ ['2.2','prio','Конец главной дороги','Главная дорога закончилась. Дальше преимущества у тебя нет.',diamond+`<g stroke="${K}" stroke-width="2.4"><line x1="28" y1="58" x2="58" y2="28"/><line x1="32" y1="62" x2="62" y2="32"/><line x1="36" y1="66" x2="66" y2="36"/></g>`],
+ ['2.3.1','prio','Пересечение со второстепенной дорогой','Впереди перекрёсток, ты на главной (жирная линия), пересекаешь второстепенную.',warn(`<rect x="45" y="36" width="10" height="46" fill="${K}"/><rect x="29" y="56" width="42" height="6" fill="${K}"/>`)],
+ ['2.4','prio','Уступите дорогу','Пропусти машины на дороге, которую пересекаешь.',`<polygon points="6,13 94,13 50,91" fill="${W}" stroke="${R}" stroke-width="9" stroke-linejoin="round"/>`],
+ ['2.5','prio','Движение без остановки запрещено (СТОП)','Обязательно остановись полностью у стоп-линии, потом уступи и только тогда езжай.',octa+txt('STOP',59,25,W)],
+ ['2.6','prio','Преимущество встречного движения','Узкое место: ты (красная стрелка) пропускаешь встречных.',ring(P2(up(R),62,50,.38,.62)+P2(rot(180,up(K)),38,50,.38,.62))],
+ ['2.7','prio','Преимущество перед встречным движением','Узкое место: встречные (красная стрелка) пропускают тебя.',sq(P2(up(W),62,50,.38,.62)+P2(rot(180,up(R)),38,50,.38,.62))],
+ ['3.1','ban','Въезд запрещён','«Кирпич»: в эту сторону въезжать нельзя никому.',`<circle cx="50" cy="50" r="46" fill="${R}"/><rect x="16" y="42" width="68" height="16" fill="${W}"/>`],
+ ['3.2','ban','Движение запрещено','Ехать нельзя в обе стороны. Исключение — если ты там живёшь или работаешь.',ring('')],
+ ['3.4','ban','Движение грузовых автомобилей запрещено','Грузовикам тяжелее 3,5 т сюда нельзя.',ring(P(truck(K),50,50,.58))],
+ ['3.10','ban','Движение пешеходов запрещено','Пешком здесь ходить нельзя.',ring(P(man(K),50,50,.6)+slash)],
+ ['3.18.2','ban','Поворот налево запрещён','Налево нельзя. Развернуться при этом можно.',ring(P(left(K),50,50,.55)+slash)],
+ ['3.19','ban','Разворот запрещён','Разворачиваться нельзя. Налево поворачивать можно.',ring(P(uturn(K),50,52,.55)+slash)],
+ ['3.20','ban','Обгон запрещён','Обгонять нельзя (кроме тихоходных машин, повозок, мопедов и мотоциклов без коляски).',ring(P(carRear(R),33,52,.36)+P(carRear(K),67,52,.36))],
+ ['3.24','ban','Ограничение максимальной скорости','Быстрее указанного числа ехать нельзя — здесь 60 км/ч.',ring(txt('60',63,38,K))],
+ ['3.25','ban','Конец зоны ограничения максимальной скорости','Ограничение скорости закончилось, снова действуют обычные правила.',`<circle cx="50" cy="50" r="44" fill="${W}" stroke="${K}" stroke-width="1.5"/>`+txt('60',63,38,'#9a9a9a')+`<g stroke="${K}" stroke-width="2.4"><line x1="24" y1="80" x2="80" y2="24"/><line x1="20" y1="74" x2="74" y2="20"/><line x1="28" y1="84" x2="84" y2="28"/></g>`],
+ ['3.27','ban','Остановка запрещена','Нельзя ни останавливаться, ни стоять. Даже на минуту.',`<circle cx="50" cy="50" r="43" fill="${B}" stroke="${R}" stroke-width="8"/><path d="M23 23 L77 77 M77 23 L23 77" stroke="${R}" stroke-width="8"/>`],
+ ['3.28','ban','Стоянка запрещена','Стоять долго нельзя, но остановиться (высадить человека) можно.',`<circle cx="50" cy="50" r="43" fill="${B}" stroke="${R}" stroke-width="8"/><path d="M23 23 L77 77" stroke="${R}" stroke-width="8"/>`],
+ ['4.1.1','must','Движение прямо','Можно ехать только прямо.',blueC(P(up(W),50,50,.68))],
+ ['4.1.2','must','Движение направо','Можно ехать только направо.',blueC(P(right(W),50,50,.62))],
+ ['4.1.4','must','Движение прямо или направо','Можно только прямо или направо.',blueC(P(strRight(W),50,50,.62))],
+ ['4.2.1','must','Объезд препятствия справа','Препятствие объезжай только справа.',blueC(rot(135,P(up(W),50,50,.62)))],
+ ['4.3','must','Круговое движение','Перекрёсток с кольцом: едешь по кругу против часовой стрелки.',blueC(roundabout)],
+ ['4.5.1','must','Пешеходная дорожка','Дорожка только для пешеходов, машинам нельзя.',blueC(P(man(W),50,52,.62))],
+ ['5.5','spec','Дорога с односторонним движением','Все машины едут в одну сторону. Встречных нет.',sq(P(up(W),50,50,.72))],
+ ['5.6','spec','Конец дороги с односторонним движением','Одностороннее движение закончилось — дальше будут встречные.',sq(P(up(W),50,50,.72)+`<line x1="20" y1="80" x2="80" y2="20" stroke="${R}" stroke-width="6"/>`)],
+ ['5.19.1','spec','Пешеходный переход','Здесь переход. Пешеходов, которые идут или ступили на дорогу, обязательно пропусти.',sq(wtri+P(man(K),50,58,.42))],
+ ['5.20','spec','Искусственная неровность (место)','Стоит прямо у «лежачего полицейского» — он здесь.',sq(wtri+P(bump(K),50,64,.44))],
+ ['5.23.2','spec','Начало населённого пункта','Въезжаешь в город: максимум 60 км/ч.',town],
+ ['5.24.2','spec','Конец населённого пункта','Город закончился: за городом обычно можно до 90 км/ч.',town+`<line x1="8" y1="72" x2="92" y2="28" stroke="${R}" stroke-width="4"/>`],
+ ['6.4','info','Парковка (парковочное место)','Здесь можно поставить машину.',sq(txt('P',74,64,W))],
+ ['7.1','info','Пункт медицинской помощи','Рядом можно получить медпомощь.',svc(`<path d="M44 22 H56 V34 H68 V46 H56 V58 H44 V46 H32 V34 H44 Z" fill="${R}"/>`)],
+ ['7.3','info','Автозаправочная станция','Рядом заправка (АЗС).',svc(`<rect x="36" y="22" width="22" height="38" rx="2" fill="${K}"/><rect x="40" y="27" width="14" height="10" fill="${W}"/><path d="M58 30 H64 V52 Q64 56 60 56" fill="none" stroke="${K}" stroke-width="3"/><rect x="32" y="58" width="30" height="4" fill="${K}"/>`)],
+ ['1.2','warn','Железнодорожный переезд без шлагбаума','Впереди переезд без шлагбаума. Посмотри по сторонам: поезд не остановится.',warn(P(loco,50,62,.44))],
+ ['1.3.1','warn','Однопутная железная дорога','Стоит прямо у переезда без шлагбаума через один путь.',xcross],
+ ['1.3.2','warn','Многопутная железная дорога','Стоит у переезда без шлагбаума через два пути и больше.',P(xcross,50,38,.72)+`<path d="M28 98 L50 78 L72 98" fill="none" stroke="${R}" stroke-width="13"/><path d="M28 98 L50 78 L72 98" fill="none" stroke="${W}" stroke-width="7"/>`],
+ ['1.4.1','warn','Приближение к железнодорожному переезду','Таблички с красными полосами: 3 полосы — переезд далеко, 2 — ближе, 1 — совсем рядом.',appr],
+ ['1.5','warn','Пересечение с трамвайной линией','Впереди пересекаешь трамвайные пути.',warn(P(tram,50,62,.44))],
+ ['1.6','warn','Пересечение равнозначных дорог','Впереди перекрёсток равных дорог: уступи тем, кто справа.',warn(P(rot(45,`<rect x="42" y="8" width="16" height="84" fill="${K}"/><rect x="8" y="42" width="84" height="16" fill="${K}"/>`),50,62,.42))],
+ ['1.7','warn','Пересечение с круговым движением','Впереди перекрёсток с круговым движением.',warn(P(ring3(K),50,62,.44))],
+ ['1.9','warn','Разводной мост','Впереди мост, который может подниматься.',warn(P(bridge,50,62,.44))],
+ ['1.10','warn','Выезд на набережную','Впереди берег или набережная: можно съехать в воду.',warn(P(rot(25,P(carSide(K),46,38,.6))+`<rect x="4" y="56" width="30" height="8" fill="${K}"/>`+waves,50,62,.44))],
+ ['1.11.2','warn','Опасный поворот налево','Впереди крутой поворот налево с плохим обзором.',warn(P(left(K),50,62,.42))],
+ ['1.12.1','warn','Опасные повороты (первый направо)','Несколько опасных поворотов подряд, первый — направо.',warn(P(zig(K),50,62,.42))],
+ ['1.12.2','warn','Опасные повороты (первый налево)','Несколько опасных поворотов подряд, первый — налево.',warn(P(mirror(zig(K)),50,62,.42))],
+ ['1.13','warn','Крутой спуск','Впереди крутой спуск. Число — уклон в процентах.',warn(`<polygon points="24,58 24,80 76,80" fill="${K}"/>`+txtx('10%',58,62,12,K))],
+ ['1.14','warn','Крутой подъём','Впереди крутой подъём. Число — уклон в процентах.',warn(`<polygon points="76,58 76,80 24,80" fill="${K}"/>`+txtx('10%',42,62,12,K))],
+ ['1.15','warn','Скользкая дорога','Дорога может быть скользкой. Тормози и поворачивай плавно.',warn(P(P(carSide(K),50,28,.62)+`<path d="M30 94 Q18 80 34 70 Q48 60 36 50 M70 94 Q58 80 74 70 Q88 60 76 50" fill="none" stroke="${K}" stroke-width="6"/>`,50,62,.44))],
+ ['1.16','warn','Неровная дорога','Впереди ямы и волны на дороге.',warn(P(`<path d="M4 80 Q16 58 28 80 Q40 58 52 80 Q64 58 76 80 Q88 58 96 80 L96 92 L4 92 Z" fill="${K}"/>`,50,64,.46))],
+ ['1.18','warn','Выброс гравия','Из-под колёс могут лететь камни.',warn(P(P(carSide(K),50,34,.62)+`<g fill="${K}"><circle cx="20" cy="76" r="5"/><circle cx="34" cy="86" r="4"/><circle cx="14" cy="92" r="4"/><circle cx="80" cy="80" r="5"/><circle cx="88" cy="92" r="4"/></g>`,50,62,.44))],
+ ['1.19','warn','Опасная обочина','Съезжать на обочину опасно: ремонт или мягкий грунт.',warn(P(rot(-20,P(carSide(K),56,46,.56))+`<path d="M4 84 L60 84 L96 64 L96 74 L64 94 L4 94 Z" fill="${K}"/>`,50,62,.44))],
+ ['1.20.2','warn','Сужение дороги справа','Дорога сужается справа.',warn(P(`<path d="M28 6 L28 94 M72 6 L72 40 L56 62 L56 94" fill="none" stroke="${K}" stroke-width="9"/>`,50,62,.42))],
+ ['1.20.3','warn','Сужение дороги слева','Дорога сужается слева.',warn(P(`<path d="M28 6 L28 40 L44 62 L44 94 M72 6 L72 94" fill="none" stroke="${K}" stroke-width="9"/>`,50,62,.42))],
+ ['1.21','warn','Двустороннее движение','Начинается участок, где будут встречные машины.',warn(P2(up(K),61,62,.22,.4)+P2(rot(180,up(K)),39,62,.22,.4))],
+ ['1.24','warn','Пересечение с велосипедной дорожкой','Впереди дорогу пересекают велосипедисты.',warn(P(bike(K),50,64,.46))],
+ ['1.26','warn','Перегон скота','Здесь могут переходить коровы и другие животные.',warn(P(cow(K),50,64,.46))],
+ ['1.27','warn','Дикие животные','Могут выбежать лоси, олени и другие звери.',warn(P(deer(K),50,62,.46))],
+ ['1.28','warn','Падение камней','Возможен камнепад, на дороге могут быть камни.',warn(P(rocks(K),50,62,.44))],
+ ['1.29','warn','Боковой ветер','Сильный ветер сбоку может сдвинуть машину.',warn(P(sock(K),50,62,.44))],
+ ['1.30','warn','Низколетящие самолёты','Рядом аэродром, самолёты летят низко.',warn(P(plane(K),50,62,.44))],
+ ['1.31','warn','Тоннель','Впереди тоннель без освещения или с плохо видным въездом.',warn(P(tunnel(K),50,62,.44))],
+ ['1.32','warn','Затор','Впереди пробка.',warn(P(carRear(K),50,52,.22)+P(carRear(K),36,68,.22)+P(carRear(K),64,68,.22))],
+ ['1.33','warn','Прочие опасности','Впереди опасность, для которой нет отдельного знака.',warn(`<rect x="45" y="38" width="10" height="30" rx="3" fill="${K}"/><circle cx="50" cy="76" r="5.5" fill="${K}"/>`)],
+ ['1.34.1','warn','Направление поворота направо','Показывает, куда поворачивает дорога, — направо.',chevBox(chevR)],
+ ['1.34.2','warn','Направление поворота налево','Показывает, куда поворачивает дорога, — налево.',chevBox(mirror(chevR))],
+ ['1.34.3','warn','Направление поворота налево и направо','На Т-образном перекрёстке: дальше только налево или направо.',chevBox(P(mirror(chevR),27,50,.5)+P(chevR,73,50,.5))],
+ ['2.3.2','prio','Примыкание второстепенной дороги справа','Справа примыкает второстепенная дорога, ты на главной.',warn(`<rect x="42" y="36" width="10" height="46" fill="${K}"/><rect x="52" y="52" width="20" height="6" fill="${K}"/>`)],
+ ['2.3.3','prio','Примыкание второстепенной дороги слева','Слева примыкает второстепенная дорога, ты на главной.',warn(`<rect x="48" y="36" width="10" height="46" fill="${K}"/><rect x="28" y="52" width="20" height="6" fill="${K}"/>`)],
+ ['3.3','ban','Движение механических транспортных средств запрещено','Нельзя ехать ни на каком моторном транспорте.',ring(P(carSide(K),42,42,.38)+P(moto(K),60,64,.3))],
+ ['3.5','ban','Движение мотоциклов запрещено','Мотоциклам сюда нельзя.',ring(P(moto(K),50,52,.58))],
+ ['3.6','ban','Движение тракторов запрещено','Тракторам и самоходным машинам нельзя.',ring(P(tractor(K),50,50,.56))],
+ ['3.7','ban','Движение с прицепом запрещено','Грузовикам и тракторам с прицепом нельзя.',ring(P(truck(K),38,50,.36)+`<rect x="58" y="42" width="22" height="14" fill="${K}"/><rect x="54" y="52" width="6" height="3" fill="${K}"/><circle cx="69" cy="60" r="4" fill="${K}"/>`)],
+ ['3.8','ban','Движение гужевых повозок запрещено','Нельзя повозкам с лошадьми, всадникам и скоту.',ring(P(horse(K),50,52,.56))],
+ ['3.9','ban','Движение на велосипедах запрещено','Велосипедистам нельзя.',ring(P(bike(K),50,52,.6))],
+ ['3.11','ban','Ограничение массы','Нельзя, если машина с грузом тяжелее числа на знаке (здесь 10 т).',ring(txt('10т',61,28,K))],
+ ['3.12','ban','Ограничение массы, приходящейся на ось','Нельзя, если на одну ось приходится больше числа на знаке (здесь 6 т).',ring(P(truck(K),50,36,.32)+txt('6т',74,22,K))],
+ ['3.13','ban','Ограничение высоты','Нельзя, если машина с грузом выше числа на знаке (здесь 3,5 м).',ring(txt('3,5',60,26,K)+`<polygon points="40,18 60,18 50,28" fill="${K}"/><polygon points="40,82 60,82 50,72" fill="${K}"/>`)],
+ ['3.14','ban','Ограничение ширины','Нельзя, если машина с грузом шире числа на знаке (здесь 2 м).',ring(txt('2',61,32,K)+`<polygon points="17,40 17,60 28,50" fill="${K}"/><polygon points="83,40 83,60 72,50" fill="${K}"/>`)],
+ ['3.15','ban','Ограничение длины','Нельзя, если машина с грузом длиннее числа на знаке (здесь 10 м).',ring(P(truck(K),50,36,.34)+txt('10м',74,20,K))],
+ ['3.16','ban','Ограничение минимальной дистанции','Держи до машины впереди не меньше числа на знаке (здесь 70 м).',ring(P(carSide(K),50,36,.36)+`<path d="M26 56 L74 56" stroke="${K}" stroke-width="3"/>`+txt('70м',78,20,K))],
+ ['3.17.1','ban','Таможня','Нельзя проезжать таможню без остановки.',ring(txt('ТАМОЖНЯ',54,12,K))],
+ ['3.17.3','ban','Контроль','Нельзя проезжать пост контроля без остановки.',ring(txt('КОНТРОЛЬ',54,11,K))],
+ ['3.18.1','ban','Поворот направо запрещён','Направо нельзя.',ring(P(right(K),50,50,.55)+slash)],
+ ['3.21','ban','Конец зоны запрещения обгона','Обгонять снова можно.',endc(P(carRear(GREY),33,52,.36)+P(carRear(GREY),67,52,.36))],
+ ['3.22','ban','Обгон грузовым автомобилям запрещён','Грузовикам тяжелее 3,5 т обгонять нельзя.',ring(P(truck(R),32,52,.32)+P(carRear(K),67,52,.34))],
+ ['3.23','ban','Конец зоны запрещения обгона грузовым автомобилям','Грузовикам снова можно обгонять.',endc(P(truck(GREY),32,52,.32)+P(carRear(GREY),67,52,.34))],
+ ['3.26','ban','Подача звукового сигнала запрещена','Сигналить нельзя (можно только чтобы избежать аварии).',ring(P(horn(K),50,50,.5)+slash)],
+ ['3.29','ban','Стоянка запрещена по нечётным числам месяца','Стоять нельзя по нечётным числам: 1, 3, 5…',blueNo(`<rect x="46" y="30" width="8" height="40" fill="${W}"/>`)],
+ ['3.30','ban','Стоянка запрещена по чётным числам месяца','Стоять нельзя по чётным числам: 2, 4, 6…',blueNo(`<rect x="38" y="30" width="8" height="40" fill="${W}"/><rect x="54" y="30" width="8" height="40" fill="${W}"/>`)],
+ ['3.31','ban','Конец зоны всех ограничений','Заканчиваются сразу все запреты, что были раньше: скорость, обгон и другие.',endc('')],
+ ['3.32','ban','Движение транспортных средств с опасными грузами запрещено','Машинам с табличкой «Опасный груз» нельзя.',ring(P(truck(K),50,48,.56)+`<rect x="26" y="50" width="14" height="9" fill="#f28c00" stroke="${K}" stroke-width="1"/>`)],
+ ['4.1.3','must','Движение налево','Можно только налево (и развернуться).',blueC(P(left(W),50,50,.62))],
+ ['4.1.5','must','Движение прямо или налево','Можно только прямо или налево.',blueC(P(mirror(strRight(W)),50,50,.62))],
+ ['4.1.6','must','Движение направо или налево','Можно только направо или налево.',blueC(P(lr(W),50,50,.62))],
+ ['4.2.2','must','Объезд препятствия слева','Объезжай препятствие только слева.',blueC(rot(225,P(up(W),50,50,.62)))],
+ ['4.2.3','must','Объезд препятствия справа или слева','Объезжать можно с любой стороны.',blueC(P(rot(135,up(W)),64,54,.42)+P(rot(225,up(W)),36,54,.42))],
+ ['4.4.1','must','Велосипедная дорожка','Дорожка только для велосипедистов.',blueC(P(bike(W),50,52,.6))],
+ ['4.4.2','must','Конец велосипедной дорожки','Велосипедная дорожка закончилась.',blueC(P(bike(W),50,52,.6)+rslash)],
+ ['4.5.2','must','Пешеходная и велосипедная дорожка с совмещённым движением','Общая дорожка для пешеходов и велосипедистов.',blueC(P(bike(W),50,32,.36)+P(man(W),50,68,.34))],
+ ['4.6','must','Ограничение минимальной скорости','Медленнее числа на знаке ехать нельзя (здесь 40 км/ч).',blueC(txt('40',63,38,W))],
+ ['4.7','must','Конец зоны ограничения минимальной скорости','Ограничение минимальной скорости закончилось.',blueC(txt('40',63,38,W)+rslash)],
+].map(([id,cat,name,info,svg])=>({id,cat,name,info,svg})).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
+const BY=Object.fromEntries(SIGNS.map(s=>[s.id,s]));
+const svgOf=(s,label)=>`<svg viewBox="0 0 100 100" role="img" aria-label="${label??s.name}">${s.svg}</svg>`;
+
+const KEY='znaki-pdd-v1';
+let prog={}; try{prog=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(prog))}catch(e){}};
+let cats=new Set(Object.keys(CATS)), streak=0, qn=0, recent=[], comeback=[], cur=null, timer=null;
+const $=id=>document.getElementById(id);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pool=()=>SIGNS.filter(s=>cats.has(s.cat));
+const box=id=>prog[id]||0;
+
+function stats(){
+  const p=pool(), l=p.filter(s=>box(s.id)>=2).length;
+  $('learned').textContent=l; $('total').textContent=p.length;
+  $('barfill').style.width=(p.length?l/p.length*100:0)+'%';
+  $('streak').textContent='Серия: '+streak;
+}
+function pick(){
+  const p=pool(), ids=new Set(p.map(s=>s.id));
+  const i=comeback.findIndex(c=>c.due<=qn&&ids.has(c.id));
+  if(i>=0){const id=comeback[i].id;comeback.splice(i,1);return BY[id]}
+  let c=p.filter(s=>!recent.includes(s.id)); if(!c.length)c=p;
+  const w=c.map(s=>[1,4,6][Math.min(2,2-box(s.id))]||1), total=w.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total; for(let k=0;k<c.length;k++){r-=w[k];if(r<=0)return c[k]} return c[0];
+}
+function next(){
+  clearTimeout(timer); qn++;
+  const s=pick(); recent=[s.id,...recent].slice(0,Math.min(4,pool().length-1));
+  const same=shuffle(SIGNS.filter(x=>x.cat===s.cat&&x.id!==s.id)).slice(0,2);
+  const rest=shuffle(SIGNS.filter(x=>x.id!==s.id&&!same.includes(x)));
+  const opts=shuffle([s,...same,...rest].slice(0,4).concat([]).filter((v,i,a)=>a.indexOf(v)===i)).slice(0,4);
+  if(!opts.includes(s))opts[0]=s, shuffle(opts);
+  cur={s,opts,rev:Math.random()<.35,done:false};
+  draw();
+}
+function draw(){
+  const {s,opts,rev}=cur;
+  $('card').innerHTML=rev
+    ?`<p class="q">Где знак «${s.name}»?</p><div class="opts">${opts.map((o,i)=>`<button class="opt pic" id="o${i}" data-i="${i}"><span class="k">${i+1}</span>${svgOf(o,'Вариант '+(i+1))}</button>`).join('')}</div><div id="fbx" style="width:100%"></div>`
+    :`${svgOf(s,'Знак')}<p class="q">Что это за знак?</p><div class="opts text">${opts.map((o,i)=>`<button class="opt" id="o${i}" data-i="${i}"><span class="k">${i+1}</span><span>${o.name}</span></button>`).join('')}</div><div id="fbx" style="width:100%"></div>`;
+  if(!rev)$('card').firstElementChild.classList.add('big');
+  $('card').querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(+b.dataset.i));
+  stats();
+}
+function answer(i){
+  if(!cur||cur.done)return; cur.done=true;
+  const {s,opts}=cur, ok=opts[i]===s;
+  opts.forEach((o,k)=>{const b=$('o'+k);b.disabled=true;if(o===s)b.classList.add('right');else if(k===i)b.classList.add('wrong')});
+  if(ok){prog[s.id]=Math.min(3,box(s.id)+1);streak++}
+  else{prog[s.id]=0;streak=0;comeback.push({id:s.id,due:qn+3})}
+  save(); stats();
+  const learnedNow=ok&&box(s.id)===2;
+  $('fbx').innerHTML=`<div class="fb ${ok?'ok':'no'}">${svgOf(s)}<div><p class="t">${ok?(learnedNow?'Верно! Знак выучен ✓':'Верно!'):'Неверно. Это «'+s.name+'»'}</p><p>${s.info}</p><p class="num">Знак ${s.id} · ${CATS[s.cat]}</p></div></div><div style="display:flex;justify-content:center;margin-top:12px"><button class="btn" id="nextb">Дальше →</button></div>`;
+  $('nextb').onclick=next; $('nextb').focus({preventScroll:true});
+}
+function chips(){
+  $('chips').innerHTML=Object.entries(CATS).map(([k,v])=>`<button class="chip" id="c-${k}" aria-pressed="${cats.has(k)}">${v}</button>`).join('');
+  Object.keys(CATS).forEach(k=>$('c-'+k).onclick=()=>{
+    if(cats.has(k)){if(cats.size>1)cats.delete(k)}else cats.add(k);
+    recent=[];chips();next();
+  });
+}
+function gallery(){
+  $('all').innerHTML=Object.entries(CATS).map(([k,v])=>`<h2>${v}</h2><div class="grid">${SIGNS.filter(s=>s.cat===k).map(s=>`<div class="gi">${svgOf(s)}<div style="min-width:0"><span class="num">${s.id}</span>${box(s.id)>=2?' <span class="ok">✓ выучен</span>':''}<p class="n">${s.name}</p><p class="d">${s.info}</p></div></div>`).join('')}</div>`).join('');
+}
+function tab(which){
+  const q=which==='quiz';
+  $('tab-quiz').setAttribute('aria-selected',q);$('tab-all').setAttribute('aria-selected',!q);
+  $('quiz').hidden=!q;$('quiz').style.display=q?'flex':'none';$('all').hidden=q;
+  if(!q){clearTimeout(timer);gallery()}else if(cur&&cur.done)next();
+}
+$('tab-quiz').onclick=()=>tab('quiz');$('tab-all').onclick=()=>tab('all');
+let armed=false;
+$('reset').onclick=()=>{
+  if(!armed){armed=true;$('reset').textContent='Точно сбросить? Нажми ещё раз';setTimeout(()=>{armed=false;$('reset').textContent='Сбросить прогресс'},3000);return}
+  prog={};streak=0;comeback=[];save();armed=false;$('reset').textContent='Сбросить прогресс';next();
+};
+document.addEventListener('keydown',e=>{
+  if($('quiz').hidden||!cur)return;
+  if(!cur.done&&/^[1-4]$/.test(e.key))answer(+e.key-1);
+  else if(cur.done&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}
+});
+chips();next();
+</script>
